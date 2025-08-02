@@ -1,9 +1,10 @@
-﻿using DrawingAppWPF.ViewModels;
+﻿using DrawingAppWPF.Commands;
+using DrawingAppWPF.ViewModels;
+using System.ComponentModel;
+using System.DirectoryServices.ActiveDirectory;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Ink;
-using DrawingAppWPF.Commands;
-using System.ComponentModel;
 
 namespace DrawingAppWPF
 {
@@ -13,7 +14,6 @@ namespace DrawingAppWPF
 
 		private Stack<Stroke> undoStack = new Stack<Stroke>();
 		private Stack<Stroke> redoStack = new Stack<Stroke>();
-		
 
 		public MainWindow()
 		{
@@ -22,36 +22,69 @@ namespace DrawingAppWPF
 			ViewModel = new MainViewModel();
 			DataContext = ViewModel;
 
-			var inkDA = new DrawingAttributes
-			{
-				Color = ViewModel.BrushSettings.BrushColorAsColor,
-				Width = ViewModel.BrushSettings.BrushSize,
-				Height = ViewModel.BrushSettings.BrushSize,
-				FitToCurve = true,
-				IgnorePressure = false
-			};
+			// Initialize the InkCanvas brush using current settings
+			UpdateInkCanvasBrush();
 
-			DrawingInkCanvas.DefaultDrawingAttributes = inkDA;
-
-			// Wire up Undo/Redo events from ViewModel
+			// Undo/Redo wiring
 			ViewModel.UndoRequested += OnUndoRequested;
 			ViewModel.RedoRequested += OnRedoRequested;
 
-			// Track new strokes to manage undo stack
 			DrawingInkCanvas.StrokeCollected += DrawingInkCanvas_StrokeCollected;
 
 			// Listen for brush color or size changes in ViewModel to update InkCanvas
 			ViewModel.BrushSettings.PropertyChanged += BrushSettings_PropertyChanged;
+
+			// Listen for brush type changes to update InkCanvas brush
+			ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 		}
+
 		private void BrushSettings_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 		{
-			if (e.PropertyName == nameof(ViewModel.BrushSettings.BrushColorAsColor) ||
-				e.PropertyName == nameof(ViewModel.BrushSettings.BrushSize))
+			if (e.PropertyName == nameof(ViewModel.BrushSettings.BrushColorAsColor))
 			{
-				// Update the InkCanvas DrawingAttributes accordingly
-				DrawingInkCanvas.DefaultDrawingAttributes.Color = ViewModel.BrushSettings.BrushColorAsColor;
-				DrawingInkCanvas.DefaultDrawingAttributes.Width = ViewModel.BrushSettings.BrushSize;
-				DrawingInkCanvas.DefaultDrawingAttributes.Height = ViewModel.BrushSettings.BrushSize;
+				// Get the brush attributes for the current brush type (size, tip, base opacity)
+				var baseAttributes = ViewModel.BrushSettings.GetDrawingAttributes(ViewModel.CurrentBrushType);
+
+				// Now override just the color's RGB but keep the original alpha (opacity)
+				var newColor = ViewModel.BrushSettings.BrushColorAsColor;
+				byte originalAlpha = baseAttributes.Color.A;
+				var colorWithOpacity = System.Windows.Media.Color.FromArgb(originalAlpha, newColor.R, newColor.G, newColor.B);
+
+				baseAttributes.Color = colorWithOpacity;
+
+				// Apply to InkCanvas
+				DrawingInkCanvas.DefaultDrawingAttributes = baseAttributes;
+			}
+			else if (e.PropertyName == nameof(ViewModel.BrushSettings.BrushSize))
+			{
+				// Also update size if brush size changes
+				var baseAttributes = ViewModel.BrushSettings.GetDrawingAttributes(ViewModel.CurrentBrushType);
+
+				DrawingInkCanvas.DefaultDrawingAttributes.Width = baseAttributes.Width;
+				DrawingInkCanvas.DefaultDrawingAttributes.Height = baseAttributes.Height;
+			}
+		}
+
+		private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == nameof(ViewModel.CurrentBrushType))
+			{
+				UpdateInkCanvasBrush();
+			}
+		}
+
+		private void UpdateInkCanvasBrush()
+		{
+			if (ViewModel.CurrentBrushType == "Eraser")
+			{
+				DrawingInkCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint;
+			}
+			else
+			{
+				// Get new DrawingAttributes for current brush type, color and size
+				DrawingInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
+				var da = ViewModel.BrushSettings.GetDrawingAttributes(ViewModel.CurrentBrushType);
+				DrawingInkCanvas.DefaultDrawingAttributes = da;
 			}
 		}
 

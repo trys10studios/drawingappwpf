@@ -20,7 +20,14 @@
         Width="150" 
         Height="30" />
         </StackPanel>
-            
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="5">
+            <Button Content="Pencil" Command="{Binding SetBrushCommand}" CommandParameter="Pencil" Margin="2"/>
+            <Button Content="Pen" Command="{Binding SetBrushCommand}" CommandParameter="Pen" Margin="2"/>
+            <Button Content="Paint Brush" Command="{Binding SetBrushCommand}" CommandParameter="PaintBrush" Margin="2"/>
+            <Button Content="Marker" Command="{Binding SetBrushCommand}" CommandParameter="Marker" Margin="2"/>
+            <Button Content="Eraser" Command="{Binding SetBrushCommand}" CommandParameter="Eraser" Margin="2"/>
+        </StackPanel>
+
         <InkCanvas x:Name="DrawingInkCanvas"
         Background="White"
            />        
