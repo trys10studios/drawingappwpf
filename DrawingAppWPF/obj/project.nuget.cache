@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "aYxuS77xUQo=",
+  "dgSpecHash": "DpJ6IhgOLT4=",
   "success": true,
   "projectFilePath": "G:\\DrawingAppWPF\\DrawingAppWPF\\DrawingAppWPF.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\DELL\\.nuget\\packages\\extended.wpf.toolkit\\4.7.25104.5739\\extended.wpf.toolkit.4.7.25104.5739.nupkg.sha512"
+  ],
   "logs": []
 }
